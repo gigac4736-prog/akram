@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fondo Sector Primario</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* Fondo principal */
+        .fondo-sector-primario {
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(#87ceeb, #b4e1ff); /* Cielo */
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Sol animado */
+        .sol {
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, #ffeb3b, #fbc02d);
+            border-radius: 50%;
+            position: absolute;
+            top: 50px;
+            right: -120px;
+            animation: moverSol 20s linear infinite;
+            filter: blur(1px);
+        }
+
+        @keyframes moverSol {
+            0% { transform: translateX(0px) translateY(0px); }
+            50% { transform: translateX(-40vw) translateY(20vh); }
+            100% { transform: translateX(0px) translateY(0px); }
+        }
+
+        /* Nubes flotando */
+        .nube {
+            width: 200px;
+            height: 80px;
+            background: white;
+            border-radius: 100px;
+            position: absolute;
+            opacity: 0.8;
+            filter: blur(1px);
+        }
+
+        .nube::before,
+        .nube::after {
+            content: "";
+            position: absolute;
+            background: white;
+            border-radius: 100px;
+        }
+
+        .nube::before {
+            width: 120px;
+            height: 60px;
+            left: -40px;
+            top: 10px;
+        }
+
+        .nube::after {
+            width: 140px;
+            height: 70px;
+            left: 80px;
+            top: -20px;
+        }
+
+        .nube1 {
+            top: 100px;
+            left: -250px;
+            animation: moverNube1 45s linear infinite;
+        }
+
+        .nube2 {
+            top: 200px;
+            left: -350px;
+            animation: moverNube2 60s linear infinite;
+        }
+
+        @keyframes moverNube1 {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(140vw); }
+        }
+
+        @keyframes moverNube2 {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(150vw); }
+        }
+
+        /* Suelo con efecto brisa */
+        .suelo {
+            width: 100%;
+            height: 30vh;
+            background: linear-gradient(#3f9e2f, #2d7e23);
+            position: absolute;
+            bottom: 0;
+            animation: moverPasto 8s ease-in-out infinite alternate;
+        }
+
+        @keyframes moverPasto {
+            0% { background-position: 0 0; }
+            100% { background-position: 20px 10px; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="fondo-sector-primario">
+        <div class="sol"></div>
+        <div class="nube nube1"></div>
+        <div class="nube nube2"></div>
+        <div class="suelo"></div>
+    </div>
+</body>
+</html>

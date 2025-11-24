@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cyberpunk Casino Ultra</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* ------------------- BODY / FONDO ------------------- */
+body{
+    font-family: 'Orbitron', sans-serif;
+    margin:0;
+    padding:20px;
+    background: #0d001a;
+    
+    color:#fff;
+    text-align:center;
+}
+
+/* ------------------- PARTICULAS ------------------- */
+#fondo {
+    position:fixed;
+    inset:0;
+    z-index:-1;
+}
+canvas{
+    width:100%;
+    height:100%;
+    display:block;
+}
+
+/* ------------------- TITULO ------------------- */
+h1{
+    font-size:3em;
+    text-shadow:0 0 10px #ff00ff,0 0 20px #00ffff;
+    margin-bottom:10px;
+    animation: glow 2s infinite alternate;
+}
+@keyframes glow{
+    from{text-shadow:0 0 10px #ff00ff,0 0 20px #00ffff;}
+    to{text-shadow:0 0 30px #ff00ff,0 0 50px #00ffff;}
+}
+
+/* ------------------- BOTON ------------------- */
+#boton{
+    background: linear-gradient(145deg,#ff00ff,#00ffff);
+    border:2px solid #00ffff;
+    border-radius:12px;
+    padding:14px 24px;
+    font-size:20px;
+    font-weight:bold;
+    cursor:pointer;
+    color:#fff;
+    text-shadow:0 0 6px #fff;
+    box-shadow:0 0 20px #00ffff,0 0 40px #ff00ff inset;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+#boton:hover{
+    transform: scale(1.08);
+    box-shadow:0 0 40px #00ffff,0 0 80px #ff00ff inset;
+}
+
+/* ------------------- HUD ------------------- */
+#info{
+    display:inline-block;
+    margin-top:10px;
+    padding:8px 16px;
+    border-radius:10px;
+    border:2px solid #ff00ff;
+    background: rgba(0,0,0,0.4);
+    text-shadow:0 0 8px #00ffff,0 0 6px #ff00ff;
+    font-size:20px;
+    animation: hudGlow 2s infinite alternate;
+}
+@keyframes hudGlow{
+    from{box-shadow:0 0 10px #0ff,0 0 20px #f0f;}
+    to{box-shadow:0 0 25px #0ff,0 0 50px #f0f;}
+}
+
+/* ------------------- CONTENEDOR CARTAS ------------------- */
+#hola17{
+    display:grid;
+    grid-template-columns: repeat(5,1fr);
+    gap: 20px;
+    margin-top:30px;
+    justify-items: center;
+    position:relative;
+}
+
+/* ------------------- CARTAS ------------------- */
+.carta{
+    width:120px;
+    height:180px;
+    perspective:1000px;
+    position:relative;
+    cursor:pointer;
+    transition: transform 0.5s;
+}
+.carta .cara{
+    position:absolute;
+    inset:0;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    backface-visibility:hidden;
+    border-radius:16px;
+    font-size:28px;
+    font-weight:700;
+    transition: transform 0.6s ease, box-shadow 0.3s;
+    text-shadow:0 0 8px #fff;
+}
+.front{
+    background: linear-gradient(145deg,#1b0033,#4b00ff);
+    color:#00ffff;
+    box-shadow: 0 0 20px #00ffff inset,0 0 10px #ff00ff;
+}
+.back{
+    background: linear-gradient(145deg,#33001b,#ff00ff);
+    transform: rotateY(180deg);
+    box-shadow: 0 0 20px #ff00ff inset,0 0 10px #00ffff;
+}
+.carta.volteada .front{ transform: rotateY(180deg); }
+.carta.volteada .back{ transform: rotateY(0deg); }
+.carta.seleccionada .front{
+    box-shadow:0 0 50px #00ffff,0 0 50px #ff00ff inset;
+    transform: scale(1.1);
+    animation: selectedGlow 1s infinite alternate;
+}
+@keyframes selectedGlow{
+    from{box-shadow:0 0 40px #0ff,0 0 40px #f0f inset;}
+    to{box-shadow:0 0 70px #0ff,0 0 70px #f0f inset;}
+}
+
+/* ------------------- LOG ------------------- */
+#log{
+    margin-top:20px;
+    font-family:'Courier New', monospace;
+    font-size:16px;
+    max-width:800px;
+    min-height:80px;
+    background: rgba(0,0,0,0.4);
+    border:2px solid #00ffff;
+    border-radius:10px;
+    padding:12px;
+    color:#0ff;
+    text-shadow:0 0 4px #0ff,0 0 6px #f0f;
+    overflow-y:auto;
+    animation: logGlow 2s infinite alternate;
+}
+@keyframes logGlow{
+    from{box-shadow:0 0 5px #0ff,0 0 10px #f0f;}
+    to{box-shadow:0 0 20px #0ff,0 0 40px #f0f;}
+}
+</style>
+</head>
+<body>
+<h1>Cyberpunk Casino Ultra</h1>
+<button id="boton">Iniciar ronda</button>
+<div id="info"></div>
+<div id="hola17"></div>
+<div id="log">Bienvenido al Cyberpunk Casino Ultra. Pulsa "Iniciar ronda".</div>
+<canvas id="fondo"></canvas>
+
+<script>
+// ------------------------- PARTICULAS DE FONDO -------------------------
+const canvas=document.getElementById('fondo');
+const ctx=canvas.getContext('2d');
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
+class Particle{
+    constructor(){
+        this.x=Math.random()*canvas.width;
+        this.y=Math.random()*canvas.height;
+        this.size=Math.random()*2+1;
+        this.speedX=Math.random()*1-0.5;
+        this.speedY=Math.random()*1-0.5;
+    }
+    update(){
+        this.x+=this.speedX; this.y+=this.speedY;
+        if(this.x<0)this.x=canvas.width; if(this.x>canvas.width)this.x=0;
+        if(this.y<0)this.y=canvas.height; if(this.y>canvas.height)this.y=0;
+    }
+    draw(){
+        ctx.fillStyle='rgba(0,255,255,0.7)';
+        ctx.beginPath(); ctx.arc(this.x,this.y,this.size,0,Math.PI*2); ctx.fill();
+    }
+}
+let particles=[]; for(let i=0;i<150;i++)particles.push(new Particle());
+function animate(){ ctx.clearRect(0,0,canvas.width,canvas.height); particles.forEach(p=>{p.update();p.draw();}); requestAnimationFrame(animate); }
+animate();
+
+// ------------------------- CARTAS -------------------------
+const valores=["10","20","30","5","5","5","1","1","1","1","1","1","1","1","1","death","death","death","death","death"];
+const contenedor=document.getElementById('hola17');
+function formatearValor(v){return isNaN(v)?v:"x"+v;}
+function obtenerSumaCartas(cartas){let total=0; for(let c of cartas){if(c==="death")return"death"; if(c==="1")total-=1; else total+=Number(c);} if(total<0)total=0; return total;}
+function mezclar(arr){return arr.sort(()=>Math.random()-0.5);}
+
+valores.forEach(valor=>{
+    let carta=document.createElement('div'); carta.classList.add('carta');
+    let front=document.createElement('div'); front.classList.add('cara','front'); front.textContent=formatearValor(valor);
+    let back=document.createElement('div'); back.classList.add('cara','back');
+    carta.appendChild(front); carta.appendChild(back);
+    carta.dataset.valor=valor;
+    contenedor.appendChild(carta);
+});
+
+let rondaActiva=false, seleccionadas=[], jugadorActual=null, apuesta=0;
+const boton=document.getElementById('boton');
+const info=document.getElementById('info');
+const log=document.getElementById('log');
+
+function cargarJugador(nombre){
+    let jugadores=JSON.parse(localStorage.getItem('jugadores')||'[]');
+    let j=jugadores.find(p=>p.nombre===nombre);
+    if(!j){j={nombre,dinero:1}; jugadores.push(j); localStorage.setItem('jugadores',JSON.stringify(jugadores));}
+    return j;
+}
+function guardarJugador(j){let jugadores=JSON.parse(localStorage.getItem('jugadores')||'[]'); let idx=jugadores.findIndex(p=>p.nombre===j.nombre); jugadores[idx]=j; localStorage.setItem('jugadores',JSON.stringify(jugadores));}
+function actualizarHUD(){ info.textContent=jugadorActual?`Jugador: ${jugadorActual.nombre} | Dinero: ${jugadorActual.dinero}`:""; }
+function mostrarCartas(){document.querySelectorAll('.carta').forEach(c=>{c.classList.remove('volteada'); c.classList.remove('seleccionada');});}
+
+boton.addEventListener('click',()=>{if(!rondaActiva)iniciarRonda();else terminarRonda();});
+function iniciarRonda(){
+    let nombre=prompt("Introduce tu nombre:"); if(!nombre)return;
+    jugadorActual=cargarJugador(nombre); actualizarHUD();
+    let apuestaUsuario=Number(prompt(`Tienes ${jugadorActual.dinero} monedas. ¿Cuánto apuestas?`));
+    if(isNaN(apuestaUsuario)||apuestaUsuario<=0){alert("Apuesta no válida."); return;}
+    if(apuestaUsuario>jugadorActual.dinero){alert("No puedes apostar más dinero del que tienes."); return;}
+    apuesta=apuestaUsuario; seleccionadas=[]; rondaActiva=true; boton.textContent="Terminar ronda";
+    let cartas=Array.from(document.querySelectorAll('.carta')); cartas=mezclar(cartas); contenedor.innerHTML=""; cartas.forEach(c=>contenedor.appendChild(c)); cartas.forEach(c=>c.classList.add('volteada'));
+    log.textContent=`Ronda iniciada. Jugador: ${jugadorActual.nombre} | Apuesta: ${apuesta}`;
+}
+
+document.querySelectorAll('.carta').forEach(carta=>{
+    carta.addEventListener('click',()=>{
+        if(!rondaActiva)return;
+        if(seleccionadas.includes(carta))return;
+        if(seleccionadas.length>=3)return;
+        carta.classList.remove('volteada'); carta.classList.add('seleccionada'); seleccionadas.push(carta);
+        if(carta.dataset.valor==='death'){ log.textContent='¡Sacaste DEATH! La ronda termina automáticamente.'; terminarRonda(); }
+    });
+});
+
+function terminarRonda(){
+    if(!rondaActiva)return;
+    let valoresSeleccion=seleccionadas.map(c=>c.dataset.valor);
+    if(valoresSeleccion.includes('death')){
+        let perdida=Math.min(apuesta,jugadorActual.dinero); jugadorActual.dinero-=perdida;
+        alert(`Sacaste DEATH. Perdiste ${perdida} monedas.`);
+    } else {
+        let suma=obtenerSumaCartas(valoresSeleccion);
+        let ganancia=apuesta*suma;
+        jugadorActual.dinero+=ganancia;
+        alert(`Cartas: ${valoresSeleccion.join(', ')}\nSuma: ${suma}\nApuesta: ${apuesta}\nGanaste ${ganancia} monedas.`);
+    }
+    guardarJugador(jugadorActual); rondaActiva=false; boton.textContent="Iniciar ronda"; mostrarCartas(); seleccionadas=[]; actualizarHUD();
+}
+mostrarCartas();
+</script>
+</body>
+</html>

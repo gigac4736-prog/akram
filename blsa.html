@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NETRUNNER CRASH - Cyberpunk Market (Fixed + UX)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <script>
+        // Fallback minimal icons if CDN is blocked (tracking prevention).
+        window._LUCIDE_FALLBACK = {
+            createIcons: function() {
+                // nothing to render for this small fallback; icons inline used when necessary
+                return;
+            }
+        };
+    </script>
+    <script>
+        (function(){
+            // Intentar cargar desde un CDN alternativo y exponer en window.lucide
+            const src = 'https://unpkg.com/lucide@latest/dist/umd/lucide.js';
+            const s = document.createElement('script');
+            s.src = src;
+            s.crossOrigin = 'anonymous';
+            s.onload = () => { /* window.lucide estará disponible */ };
+            s.onerror = () => {
+                console.warn('Lucide CDN falló, usando fallback interno.');
+                window.lucide = window._LUCIDE_FALLBACK; // usar fallback
+            };
+            document.head.appendChild(s);
+        })();
+    </script>
+    
+    <style>
+        /* Variables de color Cyberpunk */
+        :root {
+            --bg-dark: #0a0015;
+            --primary-neon: #00fff7; /* Cyan */
+            --secondary-neon: #ff00ff; /* Magenta */
+            --danger-red: #ff3366;
+            --accent-green: #39ff14;
+        }
+
+        /* Estilo general y fondo */
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background: radial-gradient(circle at 10% 10%, #1a0028 0%, #000000 80%);
+            color: var(--primary-neon);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            transition: background-color 0.1s; /* Para el flash de crash */
+        }
+        
+        /* Efecto de vibración (shake) en el body */
+        body.shake-hard {
+            animation: shake 0.2s infinite;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            25% { transform: translate(-1px, -2px) rotate(-0.5deg); }
+            50% { transform: translate(-3px, 0px) rotate(0.5deg); }
+            75% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -1px) rotate(-0.5deg); }
+        }
+
+        /* Título Glitch */
+        h1 {
+            font-size: 2.5em;
+            text-align: center;
+            color: var(--secondary-neon);
+            text-shadow: 
+                0 0 5px var(--secondary-neon), 
+                0 0 10px var(--primary-neon),
+                0 0 20px var(--secondary-neon);
+            margin-bottom: 20px;
+        }
+
+        /* Contenedor principal y responsive */
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            width: 95%;
+            max-width: 1200px;
+            gap: 20px;
+        }
+
+        @media (min-width: 900px) {
+            .game-container {
+                flex-direction: row;
+                align-items: flex-start;
+            }
+        }
+        
+        /* Panel de Control (Izquierda/Arriba) */
+        .controls-panel {
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid var(--secondary-neon);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 15px var(--secondary-neon);
+            flex-shrink: 0;
+            width: 100%;
+            max-width: 350px;
+            order: 2; /* En móvil va debajo de la gráfica */
+        }
+        
+        @media (min-width: 900px) {
+            .controls-panel {
+                order: 1; /* En desktop va a la izquierda */
+            }
+        }
+
+        .balance-display, .status-message {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px dashed var(--primary-neon);
+            border-radius: 5px;
+            background: rgba(0, 255, 247, 0.05);
+            font-weight: bold;
+            font-size: 1.1em;
+            font-family: 'Share Tech Mono', monospace;
+        }
+        
+        .status-message.win { color: var(--accent-green); border-color: var(--accent-green); box-shadow: 0 0 10px var(--accent-green); }
+        .status-message.lose { color: var(--danger-red); border-color: var(--danger-red); box-shadow: 0 0 10px var(--danger-red); }
+
+        /* Inputs y Botones */
+        input[type="number"], .game-button {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.1em;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+        input[type="number"] {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--primary-neon);
+            border: 2px solid var(--primary-neon);
+            box-shadow: 0 0 8px rgba(0, 255, 247, 0.5);
+        }
+
+        .game-button {
+            cursor: pointer;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .btn-bet {
+            background: var(--primary-neon);
+            color: var(--bg-dark);
+            box-shadow: 0 0 15px var(--primary-neon);
+        }
+
+        .btn-retire {
+            background: var(--accent-green);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent-green);
+        }
+
+        .btn-bet:disabled, .btn-retire:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Gráfica y Animación (Derecha/Centro) */
+        .chart-panel {
+            flex-grow: 1;
+            order: 1; /* En móvil va primero */
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid var(--primary-neon);
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 0 20px var(--primary-neon);
+            min-height: 350px;
+            position: relative;
+        }
+        
+        @media (min-width: 900px) {
+            .chart-panel {
+                order: 2; /* En desktop va a la derecha */
+            }
+        }
+
+        #multiplier-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4em;
+            font-weight: 700;
+            color: var(--accent-green);
+            text-shadow: 0 0 15px var(--accent-green);
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.5s, font-size 0.2s; /* Añadida transición para tamaño/color */
+        }
+        
+        #multiplier-display.active {
+            opacity: 1;
+            animation: pulse-neon 1s infinite alternate;
+        }
+
+        /* NUEVAS CLASES PARA ANIMACIÓN DE ADRENALINA */
+        #multiplier-display.fast-grow {
+            font-size: 5.5em; /* Aumenta el tamaño */
+        }
+
+        #multiplier-display.adrenalin-pulse {
+            animation: pulse-adrenalin 0.5s infinite alternate;
+            color: white; /* Color blanco brillante */
+            text-shadow: 0 0 20px white, 0 0 35px var(--accent-green);
+        }
+
+        @keyframes pulse-adrenalin {
+            0% { text-shadow: 0 0 10px white, 0 0 20px var(--accent-green); }
+            100% { text-shadow: 0 0 30px white, 0 0 50px var(--accent-green), 0 0 80px var(--accent-green); }
+        }
+        /* FIN NUEVAS CLASES */
+        
+        #multiplier-display.crashed {
+            color: var(--danger-red);
+            text-shadow: 0 0 15px var(--danger-red);
+            animation: glitch-text 0.1s infinite;
+        }
+        
+        @keyframes pulse-neon {
+            0% { text-shadow: 0 0 10px var(--accent-green); }
+            100% { text-shadow: 0 0 25px var(--accent-green), 0 0 40px rgba(57, 255, 20, 0.5); }
+        }
+
+        @keyframes glitch-text {
+            0% { transform: translate(-50%, -50%) skewX(0.5deg); opacity: 0.8; }
+            50% { transform: translate(-50.5%, -50%) skewX(-0.5deg); opacity: 1; }
+            100% { transform: translate(-50%, -50.5%) skewX(0.5deg); opacity: 0.8; }
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            min-height: 330px;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--secondary-neon);
+            font-size: 1.5em;
+        }
+        
+        /* Iconos de neón */
+        [data-lucide] {
+            stroke: currentColor;
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+            margin-right: 5px;
+            filter: drop-shadow(0 0 5px currentColor);
+        }
+    </style>
+</head>
+<body>
+    <h1>NETRUNNER CRASH</h1>
+
+    <div class="game-container">
+        
+        <div class="controls-panel">
+            <div class="balance-display">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:6px"><path d="M2 7h20v10H2z" stroke="currentColor" stroke-width="1.5"/></svg>
+                Saldo: $<span id="balance">---</span>
+            </div>
+
+            <h2>APUESTA</h2>
+            <input type="number" id="bet-input" value="10.00" min="1.00" step="1.00">
+            
+            <button class="game-button btn-bet" id="btn-start">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:6px"><path d="M3 12h18" stroke="currentColor" stroke-width="1.5"/></svg>
+                NETRUN (Apostar)
+            </button>
+            
+            <button class="game-button btn-retire" id="btn-cashout" disabled>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:6px"><path d="M10 6l-6 6 6 6" stroke="currentColor" stroke-width="1.5"/></svg>
+                RETIRAR @ <span id="cashout-multiplier">1.00x</span>
+            </button>
+            
+            <div class="status-message" id="status-display">
+                Esperando conexión...
+            </div>
+            
+        </div>
+        
+        <div class="chart-panel">
+            <div id="multiplier-display">1.00x</div>
+            <canvas id="netrunner-chart"></canvas>
+            <div class="loading" id="loading-spinner" style="display: none;">Cargando Red...</div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        // ---------------------- CONFIGURACIÓN QUE PUEDES EDITAR ----------------------
+        const firebaseConfig = null; // <-- coloca tu JSON de config aquí si lo tienes
+        const appId = 'netrunner-app';
+        const initialAuthToken = null; // Si usas token personalizado, ponlo aquí
+        // ---------------------------------------------------------------------------
+
+        // --- VARIABLES GLOBALES ---
+        let db = null;
+        let auth = null;
+        let userId = null;
+        let initialBalance = 1000.00; // Saldo inicial si no existe
+        
+        // Referencias del DOM
+        const body = document.body;
+        const balanceSpan = document.getElementById('balance');
+        const statusDisplay = document.getElementById('status-display');
+        const multiplierDisplay = document.getElementById('multiplier-display');
+        const cashoutMultiplierSpan = document.getElementById('cashout-multiplier');
+        const btnStart = document.getElementById('btn-start');
+        const btnCashout = document.getElementById('btn-cashout');
+        const betInput = document.getElementById('bet-input');
+        const chartCanvas = document.getElementById('netrunner-chart');
+        const ctx = chartCanvas.getContext('2d');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        
+        // Estado del Juego
+        let currentBalance = initialBalance;
+        let gameState = 'ready'; // 'ready', 'running', 'crashed', 'cashed_out'
+        let currentMultiplier = 1.00;
+        let crashMultiplier = Infinity; // Por defecto infinito para evitar crash inmediato
+        let userBet = 0;
+        let animationFrameId = null;
+        let gameStartTime = 0;
+        const CHART_PADDING = 20;
+
+        // Banderas de UX
+        let hasReached2x = false;
+        let hasReached5x = false;
+        
+        // Canvas hi-dpi support
+        function resizeCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const container = chartCanvas.parentElement;
+            const cssWidth = container.clientWidth - 20;
+            const cssHeight = Math.max(container.clientHeight - 20, 300);
+            chartCanvas.style.width = cssWidth + 'px';
+            chartCanvas.style.height = cssHeight + 'px';
+            chartCanvas.width = Math.floor(cssWidth * dpr);
+            chartCanvas.height = Math.floor(cssHeight * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            // Redraw grid/axis on resize
+            if (gameState !== 'running') {
+                drawGrid(currentMultiplier);
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        document.addEventListener('DOMContentLoaded', () => {
+            resizeCanvas();
+            drawGrid(1.00);
+            setButtons(false);
+            updateBalanceDisplay();
+            // Asegurar que lucide (si se cargó) cree iconos
+            try { if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons(); } catch(e) { /* ignore */ }
+        });
+
+        // ---------------- FIREBASE (opcional) - Se mantiene la estructura ----------------
+        // ... (Tu código de Firebase sin cambios, ya que no altera la UX de la interfaz)
+        // ---------------------------------------------------------------------------------
+
+        // Funciones auxiliares para compatibilidad (simulación de imports)
+        function requireMaybeFirestore() {
+            return {
+                onSnapshot: window.firebaseOnSnapshot || ((...args) => { /* console.warn('onSnapshot no disponible'); */ }),
+                setDoc: window.firebaseSetDoc || ((...args) => { /* console.warn('setDoc no disponible'); */ })
+            };
+        }
+        
+        async function initializeFirebase() {
+            if (!firebaseConfig) {
+                console.log('Firebase no configurado. Funcionando en modo LOCAL/sin sincronización.');
+                setStatus('Modo local: Firebase no configurado.');
+                return;
+            }
+            // Lógica de inicialización de Firebase
+            // ... (el resto de tu lógica de inicialización de Firebase)
+        }
+        
+        function getBalanceDocRef() {
+            // ...
+        }
+
+        function setupBalanceListener() {
+            // ...
+        }
+
+        async function updateBalance(changeAmount) {
+            // ...
+            // Lógica de actualización de saldo
+            if (!db || !getBalanceDocRef()) {
+                 currentBalance = +(currentBalance + changeAmount).toFixed(2);
+                 updateBalanceDisplay();
+                 return true;
+             }
+             // Lógica de Firebase
+             // ...
+             return true;
+        }
+
+        // ---------------- UI / Helpers ----------------
+        function setStatus(message, type = '') {
+            statusDisplay.textContent = message;
+            statusDisplay.className = 'status-message ' + type;
+        }
+
+        function setButtons(running) {
+            btnStart.disabled = running;
+            betInput.disabled = running;
+            btnCashout.disabled = !running;
+        }
+
+        function updateBalanceDisplay() {
+            balanceSpan.textContent = currentBalance.toFixed(2);
+        }
+
+        // ---------------- Gráfica y Utils ----------------
+        // ... (drawGrid, drawChart, cssVarToRgba - se mantienen sin cambios)
+        function drawGrid(maxMultiplier = 5.00) {
+             // ... (código drawGrid)
+            const w = chartCanvas.clientWidth;
+            const h = chartCanvas.clientHeight;
+            ctx.clearRect(0, 0, w, h);
+            ctx.strokeStyle = 'rgba(0, 255, 247, 0.15)';
+            ctx.font = '12px Orbitron';
+            ctx.fillStyle = cssVarToRgba('--primary-neon', 0.8);
+            ctx.textAlign = 'right';
+
+            const numLinesY = 5;
+            for (let i = 0; i <= numLinesY; i++) {
+                const y = h - CHART_PADDING - (i / numLinesY) * (h - 2 * CHART_PADDING);
+                ctx.beginPath();
+                ctx.moveTo(CHART_PADDING, y);
+                ctx.lineTo(w - CHART_PADDING, y);
+                ctx.stroke();
+                const labelMultiplier = 1 + (maxMultiplier - 1) * (i / numLinesY);
+                ctx.fillText(`${labelMultiplier.toFixed(2)}x`, CHART_PADDING - 5, y + 4);
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(CHART_PADDING, h - CHART_PADDING);
+            ctx.lineTo(w - CHART_PADDING, h - CHART_PADDING);
+            ctx.stroke();
+            ctx.textAlign = 'center';
+            ctx.fillText('Tiempo', w / 2, h - 5);
+        }
+
+        function drawChart(points, isCrashed = false) {
+             // ... (código drawChart)
+            const maxM = Math.max(currentMultiplier, 5.00, (isFinite(crashMultiplier) ? crashMultiplier : 5));
+            drawGrid(Math.max(maxM, 5.00));
+            if (!points || points.length < 2) return;
+
+            const w = chartCanvas.clientWidth;
+            const h = chartCanvas.clientHeight;
+
+            ctx.beginPath();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = isCrashed ? cssVarToRgba('--danger-red') : cssVarToRgba('--accent-green');
+            ctx.shadowColor = ctx.strokeStyle;
+            ctx.shadowBlur = isCrashed ? 10 : 15;
+
+            ctx.moveTo(CHART_PADDING, h - CHART_PADDING);
+            
+            // Simplified draw since points has max 2 elements in the current implementation
+            const lastPoint = points[points.length - 1];
+            const denom = Math.max(5, Math.max(crashMultiplier === Infinity ? 5 : crashMultiplier, currentMultiplier) - 1);
+            const lastY = h - CHART_PADDING - (lastPoint.multiplier - 1) * (h - 2 * CHART_PADDING) / denom;
+            const lastX = w - CHART_PADDING; // Always draw to the right edge for the current simple implementation
+
+            ctx.lineTo(lastX, Math.max(CHART_PADDING, lastY));
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Punto final
+            ctx.fillStyle = ctx.strokeStyle;
+            ctx.beginPath();
+            ctx.arc(lastX, Math.max(CHART_PADDING, lastY), 5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function cssVarToRgba(variableName, alpha = 1) {
+             // ... (código cssVarToRgba)
+            const s = getComputedStyle(document.documentElement).getPropertyValue(variableName).trim();
+            if (!s) return `rgba(0,255,247,${alpha})`;
+            if (s.startsWith('#')) {
+                const r = parseInt(s.substring(1,3),16);
+                const g = parseInt(s.substring(3,5),16);
+                const b = parseInt(s.substring(5,7),16);
+                return `rgba(${r},${g},${b},${alpha})`;
+            }
+            return s;
+        }
+
+        // ---------------- Lógica del Juego ----------------
+        async function startGame() {
+            if (gameState !== 'ready') return;
+            userBet = parseFloat(betInput.value);
+            if (isNaN(userBet) || userBet <= 0) { setStatus('⚠️ Ingresa una apuesta válida.'); return; }
+            if (userBet > currentBalance) { setStatus('💰 Saldo insuficiente para apostar.'); return; }
+
+            const ok = await updateBalance(-userBet);
+            if (!ok) { setStatus('ERROR al descontar la apuesta.'); return; }
+
+            setStatus('🚀 Conectando a la Red... Estableciendo punto de colapso...');
+            loadingSpinner.style.display = 'block';
+            setButtons(true);
+
+            // Reiniciar estado de crash por seguridad
+            crashMultiplier = Infinity;
+            hasReached2x = false; // Reset UX
+            hasReached5x = false; // Reset UX
+
+            try {
+                // ... (Lógica de fetch a backend)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2500); // timeout 2.5s
+
+                const res = await fetch(`http://127.0.0.1:8000/iniciar_ronda`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apuesta: userBet, session_id: userId }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                if (!res.ok) throw new Error('Error al obtener Crash Point del servidor.');
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+
+                crashMultiplier = parseFloat(data.crash_multiplier) || Infinity;
+            } catch (error) {
+                console.warn('Backend local no disponible o timeout:', error.message || error);
+                // Modo fallback: generar crash aleatorio entre 1.10x y 10x
+                crashMultiplier = parseFloat((Math.random() * 9 + 1.1).toFixed(2));
+                console.log('Crash fallback usado:', crashMultiplier);
+            }
+
+            // Iniciar animación
+            gameState = 'running';
+            gameStartTime = performance.now();
+            currentMultiplier = 1.00;
+            loadingSpinner.style.display = 'none';
+            multiplierDisplay.className = 'active';
+            setStatus(`NETRUN activo. Apuesta: $${userBet.toFixed(2)}`);
+
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        async function cashOut() {
+            if (gameState !== 'running') return;
+            const cashoutMultiplier = currentMultiplier;
+            gameState = 'cashed_out';
+            setButtons(false);
+            cancelAnimationFrame(animationFrameId);
+            setStatus(`🔒 Retirando @ ${cashoutMultiplier.toFixed(2)}x...`);
+
+            // Quitar efectos de adrenalina inmediatamente
+            multiplierDisplay.classList.remove('adrenalin-pulse', 'fast-grow');
+            
+            try {
+                // ... (Lógica de fetch a backend)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2500);
+                const res = await fetch(`http://127.0.0.1:8000/retirarse`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apuesta: userBet, multiplicador_retiro: cashoutMultiplier, session_id: userId }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                let data = null;
+                if (res && res.ok) data = await res.json();
+                
+                // Si el backend responde, usamos su lógica de pago, sino, asumimos ganancia local.
+                let totalWin = 0;
+                if (data && data.resultado === 'ganado') {
+                    totalWin = userBet + (data.ganancia_neta || 0);
+                    await updateBalance(totalWin);
+                    setStatus(`✅ RETIRO EXITOSO! Ganaste $${(data.ganancia_neta||0).toFixed(2)} @ ${cashoutMultiplier.toFixed(2)}x. (Colapso real: ${data.multiplicador_colapso?.toFixed(2) || 'N/A'}x)`, 'win');
+                } else if (data && data.resultado === 'perdido') {
+                     // Solo perderá si el colapso fue antes del retiro (simulado o real)
+                    setStatus(`💥 COLAPSO INSTANTÁNEO! El mercado cayó en ${data.multiplicador_colapso.toFixed(2)}x antes de tu retiro. Perdiste $${userBet.toFixed(2)}`, 'lose');
+                } else {
+                    // Fallback local: asume que ganó y paga
+                    const payout = +(userBet * cashoutMultiplier).toFixed(2);
+                    totalWin = payout;
+                    await updateBalance(payout);
+                    setStatus(`✅ RETIRO (modo local) pagado $${payout.toFixed(2)} @ ${cashoutMultiplier.toFixed(2)}x`, 'win');
+                }
+
+                crashMultiplier = isFinite(data?.multiplicador_colapso) ? data.multiplicador_colapso : crashMultiplier;
+                currentMultiplier = crashMultiplier === Infinity ? currentMultiplier : crashMultiplier;
+                multiplierDisplay.className = (crashMultiplier === Infinity || data?.resultado === 'ganado') ? 'active' : 'crashed';
+                multiplierDisplay.textContent = `${currentMultiplier.toFixed(2)}x`;
+                drawChart([{multiplier:1.00}, {multiplier: currentMultiplier}], (crashMultiplier !== Infinity && data?.resultado !== 'ganado'));
+
+            } catch (error) {
+                console.error('Error al retirar:', error);
+                // fallback: si el backend falló, pagar al usuario localmente
+                const payout = +(userBet * cashoutMultiplier).toFixed(2);
+                await updateBalance(payout);
+                setStatus(`✅ RETIRO (fallback) pagado $${payout.toFixed(2)} @ ${cashoutMultiplier.toFixed(2)}x`, 'win');
+                drawChart([{multiplier:1.00}, {multiplier: cashoutMultiplier}], false);
+            }
+
+            setTimeout(() => {
+                resetRound();
+            }, 3000);
+        }
+
+        function handleCrash() {
+            if (gameState !== 'running') return;
+            gameState = 'crashed';
+            setButtons(false);
+            cancelAnimationFrame(animationFrameId);
+
+            // --- Efectos de CRASH ---
+            body.style.backgroundColor = 'var(--danger-red)';
+            body.classList.add('shake-hard');
+            setTimeout(() => {
+                body.style.backgroundColor = 'initial';
+                body.classList.remove('shake-hard');
+            }, 500);
+            
+            // Sonido simulado (no funcional en este código, solo placeholder)
+            // playCrashSound(); 
+
+            multiplierDisplay.className = 'crashed';
+            multiplierDisplay.textContent = `${crashMultiplier.toFixed(2)}x`;
+            setStatus(`☢️ COLAPSO CRÍTICO @ ${crashMultiplier.toFixed(2)}x! Perdiste $${userBet.toFixed(2)}.`, 'lose');
+            drawChart([{multiplier:1.00}, {multiplier: crashMultiplier}], true);
+            setTimeout(() => resetRound(), 3000);
+        }
+
+        function resetRound() {
+            gameState = 'ready';
+            multiplierDisplay.className = '';
+            multiplierDisplay.textContent = '1.00x';
+            crashMultiplier = Infinity;
+            drawGrid(5.00);
+            setButtons(false);
+        }
+
+        function gameLoop(now) {
+            if (gameState !== 'running') return;
+            const elapsed = (now - gameStartTime) / 1000;
+            // Ecuación de crecimiento: 1 + c * t^p. Aumentar ligeramente la potencia para un crecimiento más rápido.
+            const growthFactor = 0.12; 
+            currentMultiplier = 1 + growthFactor * Math.pow(elapsed, 2.8); // 2.8 en lugar de 2.5
+            currentMultiplier = parseFloat(currentMultiplier.toFixed(2));
+
+            // --- Lógica de ADRENALINA UX ---
+            if (currentMultiplier >= 5.00 && !hasReached5x) {
+                multiplierDisplay.classList.add('adrenalin-pulse', 'fast-grow');
+                hasReached5x = true;
+                // Opcional: playHighRiskSound();
+            } else if (currentMultiplier >= 2.00 && !hasReached2x) {
+                multiplierDisplay.classList.add('adrenalin-pulse');
+                hasReached2x = true;
+            } else if (currentMultiplier < 2.00 && hasReached2x) {
+                multiplierDisplay.classList.remove('adrenalin-pulse', 'fast-grow');
+                hasReached2x = false;
+                hasReached5x = false;
+            }
+
+            multiplierDisplay.textContent = `${currentMultiplier.toFixed(2)}x`;
+            cashoutMultiplierSpan.textContent = `${currentMultiplier.toFixed(2)}x`;
+
+            // comprobar colapso sólo si crashMultiplier es finito
+            if (isFinite(crashMultiplier) && currentMultiplier >= crashMultiplier) {
+                currentMultiplier = crashMultiplier;
+                multiplierDisplay.textContent = `${currentMultiplier.toFixed(2)}x`;
+                handleCrash();
+                return;
+            }
+
+            const points = [ {multiplier:1.00}, {multiplier: currentMultiplier} ];
+            drawChart(points);
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // ---------------- Event listeners ----------------
+        btnStart.addEventListener('click', startGame);
+        btnCashout.addEventListener('click', cashOut);
+
+        // Inicializar Firebase (si config presente)
+        initializeFirebase();
+
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+

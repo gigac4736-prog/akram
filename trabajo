@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sector Primario</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* Reset */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Montserrat',sans-serif;background:#111;color:#fff;overflow-x:hidden;}
+header{position:sticky;top:0;z-index:100;background:rgba(0,0,0,0.85);padding:20px;text-align:center;font-size:28px;font-weight:700;text-shadow:0 0 10px #ff0;}
+.section{padding:40px 20px;max-width:1200px;margin:auto;}
+.card{background:rgba(255,255,255,0.95);padding:25px;border-radius:20px;margin:20px 0;box-shadow:0 8px 20px rgba(0,0,0,0.3);color:#000;transition:transform 0.3s ease;}
+.card:hover{transform:translateY(-5px);box-shadow:0 12px 28px rgba(0,0,0,0.4);}
+.btn{padding:12px 20px;border:none;border-radius:12px;background:linear-gradient(135deg,#ff8a00,#ff3d00);color:white;font-weight:700;font-size:16px;cursor:pointer;transition:all 0.3s ease;}
+.btn:hover{transform:scale(1.05);filter:brightness(1.1);}
+h2{margin-bottom:25px;text-align:center;font-size:28px;color:#ff5722;text-shadow:0 0 5px #fff;}
+#quiz-container h3{margin-bottom:15px;font-size:22px;}
+#quiz-container button{width:100%;padding:12px;margin-top:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#4caf50,#81c784);color:white;font-weight:600;font-size:16px;cursor:pointer;transition:all 0.3s;}
+#quiz-container button:hover{transform:scale(1.05);}
+#puntos{color:#ffeb3b;font-weight:700;font-size:22px;text-shadow:0 0 5px #000;}
+
+/* Ruleta 3D */
+#ruleta-container{position:relative;width:1000px;height:300px;margin:auto;perspective:1000px;}
+#ruleta{width:100%;height:100%;border-radius:50%;position:relative;overflow:hidden;transform-style:preserve-3d;box-shadow:0 8px 20px rgba(0,0,0,0.5);}
+.sector{position:absolute;width:50%;height:50%;top:50%;left:50%;transform-origin:0% 0%;display:flex;align-items:center;justify-content:center;font-weight:bold;color:white;font-size:20px;text-shadow:0 0 5px #000;}
+.s1{background:#ff3d00;transform:rotateY(0deg) skewY(-30deg);}
+.s2{background:#ff9800;transform:rotateY(90deg) skewY(-30deg);}
+.s3{background:#4caf50;transform:rotateY(180deg) skewY(-30deg);}
+.s4{background:#2196f3;transform:rotateY(270deg) skewY(-30deg);}
+.flecha{width:0;height:0;border-left:20px solid transparent;border-right:20px solid transparent;border-bottom:35px solid #fff;position:absolute;top:-15px;left:50%;transform:translateX(-50%);}
+.correct{animation:correctAnim 0.6s forwards;}
+@keyframes correctAnim{0%{transform:scale(1);background-color:#4caf50;}50%{transform:scale(1.1);}100%{transform:scale(1);}}
+.incorrect{animation:incorrectAnim 0.6s forwards;}
+@keyframes incorrectAnim{0%{transform:scale(1) translateX(0);background-color:#f44336;}25%{transform:translateX(-10px);}50%{transform:translateX(10px);}75%{transform:translateX(-10px);}100%{transform:scale(1) translateX(0);}}
+
+/* Pantalla inicial */
+#inicio{position:fixed;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle,#444,#111);display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;z-index:9999;text-align:center;padding:20px;animation:fadeIn 1s forwards;}
+#inicio h1{font-size:36px;margin-bottom:20px;text-shadow:0 0 10px #ff0;}
+#inicio button{font-size:22px;box-shadow:0 0 15px #ff0;}
+
+/* Partículas */
+#particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:-1;}
+.particle{position:absolute;width:6px;height:6px;background-color:rgba(255,255,0,0.7);border-radius:50%;animation:particleAnim linear infinite;}
+@keyframes particleAnim{0%{transform:translateY(0) rotate(0deg);}100%{transform:translateY(100vh) rotate(360deg);}}
+</style>
+</head>
+<body>
+<div id="particles"></div>
+
+<div id="inicio">
+<h1>Bienvenido al Quiz 🌱</h1>
+<p>Para entrar, ¡debes vender tu casa! </p>
+<button id="entrar" class="btn">Aceptar y Entrar</button>
+</div>
+
+<header>🎰 Sector Primario 🎰</header>
+
+<section class="section" id="quiz-section" style="display:none;">
+<h2>Quiz Interactivo</h2>
+<div id="progress" style="width:100%; background:#eee; height:12px; border-radius:6px; margin-bottom:20px;">
+  <div id="progress-fill" style="height:12px; width:0%; background:#ff5722; border-radius:6px; transition:width 0.5s;"></div>
+</div>
+<div id="quiz-container" class="card"></div>
+<div class="card" style="text-align:center; font-size:20px;">
+  Puntos totales: <span id="puntos">0</span>
+</div>
+<div class="card" style="text-align:center; font-size:18px;">
+  Racha actual: <span id="racha">0</span>
+</div>
+</section>
+
+<section class="section card" id="ruleta-section" style="display:none;">
+<h2>Ruleta</h2>
+<div class="flecha"></div>
+<div id="ruleta-container">
+  <div id="ruleta">
+    <div class="sector s1">0</div>
+    <div class="sector s2">0</div>
+    <div class="sector s3">0</div>
+    <div class="sector s4">0</div>
+  </div>
+</div>
+<button id="girar" class="btn">Girar Ruleta</button>
+<h3 id="resultado" style="color:#ffeb3b;text-shadow:0 0 5px #000;"></h3>
+</section>
+
+<section class="section card" id="ranking-section" style="display:none;">
+<h2>🏆 Ranking</h2>
+<ul id="ranking"></ul>
+</section>
+
+<script>
+// Partículas fondo
+for(let i=0;i<50;i++){
+  const p=document.createElement('div');
+  p.classList.add('particle');
+  p.style.left=Math.random()*100+'%';
+  p.style.animationDuration=2+Math.random()*3+'s';
+  document.getElementById('particles').appendChild(p);
+}
+
+// Pantalla inicial
+document.getElementById('entrar').onclick=function(){
+  document.getElementById('inicio').style.display='none';
+  document.getElementById('quiz-section').style.display='block';
+  document.getElementById('ruleta-section').style.display='block';
+}
+
+// Preguntas con tooltip educativo
+const preguntas=[
+{q:"¿Cuál pertenece al sector primario?",o:["Transporte","Agricultura","Medicina","Informática"],a:1,tip:"Agricultura pertenece al sector primario."},
+{q:"La pesca artesanal usa...",o:["Barcos industriales","Técnicas locales","Robots automáticos","Redes gigantes"],a:1,tip:"La pesca artesanal utiliza técnicas locales y tradicionales."},
+{q:"La minería sostenible busca...",o:["Máxima extracción","Cero normas","Minimizar impacto","Contaminar más"],a:2,tip:"Busca minimizar el impacto ambiental."},
+{q:"Agricultura ecológica incluye...",o:["Muchos químicos","Rotación de cultivos","Monocultivo eterno","Quema constante"],a:1,tip:"La rotación de cultivos ayuda a mantener la fertilidad del suelo."},
+{q:"El sector primario extrae...",o:["Servicios","Tecnologías","Recursos naturales","Software"],a:2,tip:"El sector primario se basa en recursos naturales."},
+{q:"La ganadería forma parte de...",o:["Sector primario","Sector secundario","Sector terciario","Sector cuaternario"],a:0,tip:"La ganadería es parte del sector primario."},
+{q:"El cultivo de cereales pertenece a...",o:["Sector primario","Sector secundario","Sector terciario","Sector cuaternario"],a:0,tip:"Los cereales se cultivan, por tanto es sector primario."},
+{q:"La acuicultura es...",o:["Pesca en río y mar","Industria manufacturera","Transporte marítimo","Turismo rural"],a:0,tip:"La acuicultura se basa en la cría de organismos acuáticos."},
+{q:"La reforestación es importante para...",o:["Conservar el suelo y agua","Aumentar industria","Crear carreteras","Construir ciudades"],a:0,tip:"La reforestación ayuda a conservar suelo y agua."},
+{q:"La minería metálica se centra en...",o:["Extracción de minerales","Producción de energía","Comercio internacional","Educación"],a:0,tip:"Extrae minerales metálicos del suelo."},
+{q:"La horticultura estudia...",o:["Cultivo de hortalizas","Pesca industrial","Ganado bovino","Minería"],a:0,tip:"Se centra en cultivar hortalizas."},
+{q:"El sector primario depende de...",o:["Recursos naturales","Tecnología avanzada","Marketing","Banca"],a:0,tip:"Depende de los recursos naturales disponibles."},
+{q:"La apicultura consiste en...",o:["Cría de abejas para miel","Construcción de casas","Producción de coches","Software"],a:0,tip:"Se crían abejas para producir miel y otros productos."},
+{q:"La pesca industrial se caracteriza por...",o:["Uso de grandes barcos y redes","Cosecha manual","Cultivos ecológicos","Educación"],a:0,tip:"Se usan barcos grandes y redes industriales."},
+{q:"El comercio de productos agrícolas se ubica en...",o:["Sector terciario","Sector primario","Sector secundario","Sector cuaternario"],a:0,tip:"La venta es sector terciario, producción es primario."}
+];
+
+let actual=0,puntos=0,puntosRonda=0,racha=0;
+const contenedor=document.getElementById("quiz-container");
+
+function cargarPregunta(){
+  const p=preguntas[actual];
+  contenedor.innerHTML=`<h3>${p.q}</h3>`+p.o.map((op,i)=>`<button onclick='verificar(${i},this)'>${op}</button>`).join('');
+  actualizarProgreso();
+}
+
+function actualizarProgreso(){
+  const fill=document.getElementById('progress-fill');
+  fill.style.width=`${((actual+1)/preguntas.length)*100}%`;
+}
+
+cargarPregunta();
+
+function verificar(i,btn){
+  if(i===preguntas[actual].a){
+    btn.classList.add('correct');
+    puntosRonda=10;
+    racha++;
+    document.getElementById('racha').innerText=racha;
+    alert(`¡Correcto! 🎉 ${preguntas[actual].tip}\nAhora gira la ruleta para multiplicar tus puntos.`);
+  }else{
+    btn.classList.add('incorrect');
+    puntosRonda=0;
+    racha=0;
+    document.getElementById('racha').innerText=racha;
+    alert("Incorrecto ❌");
+    siguiente();
+  }
+}
+
+// Ruleta
+const ruleta=document.getElementById("ruleta"), botonGirar=document.getElementById("girar"), res=document.getElementById("resultado");
+
+function confetiMonedas(){
+  for(let i=0;i<50;i++){
+    const c=document.createElement('div');
+    c.style.position='fixed'; c.style.width='6px'; c.style.height='6px';
+    c.style.backgroundColor=`hsl(${Math.random()*360},70%,50%)`;
+    c.style.left=Math.random()*window.innerWidth+'px';
+    c.style.top='-10px'; c.style.borderRadius='50%';
+    document.body.appendChild(c);
+    c.animate([{transform:'translateY(0)'},{transform:`translateY(${window.innerHeight}px)`}],{duration:2000+Math.random()*2000});
+    setTimeout(()=>c.remove(),3000);
+  }
+  for(let i=0;i<20;i++){
+    const m=document.createElement('div');
+    m.style.position='fixed'; m.style.width='10px'; m.style.height='10px';
+    m.style.backgroundColor='gold'; m.style.left=Math.random()*window.innerWidth+'px';
+    m.style.top='-10px'; m.style.borderRadius='50%';
+    document.body.appendChild(m);
+    m.animate([{transform:'translateY(0)'},{transform:`translateY(${window.innerHeight}px)`}],{duration:1500+Math.random()*1500});
+    setTimeout(()=>m.remove(),2500);
+  }
+}
+
+botonGirar.onclick=()=>{
+  if(puntosRonda==0){alert("Primero acierta una pregunta para girar la ruleta!"); return;}
+  let multiplicador = [1,2,3,4][Math.min(racha,3)]; // racha aumenta chance de multiplicador
+  const grados=720+Math.floor(Math.random()*360);
+  ruleta.style.transition='4s cubic-bezier(0.25,1,0.5,1)';
+  ruleta.style.transform=`rotateY(${grados}deg)`;
+  setTimeout(()=>{
+    let premio = puntosRonda * multiplicador;
+    puntos += premio;
+    document.getElementById("puntos").innerText=puntos;
+    res.innerText=`¡Ganaste ${premio} puntos! 🎉 (x${multiplicador})`;
+    confetiMonedas();
+    puntosRonda=0;
+    siguiente();
+  },4000);
+}
+
+function siguiente(){
+  actual++;
+  if(actual<preguntas.length){cargarPregunta();}
+  else{
+    alert(`¡Quiz terminado! Puntos totales: ${puntos}`);
+    guardarRanking();
+    mostrarRanking();
+  }
+}
+
+// Ranking con localStorage
+function guardarRanking(){
+  let r = JSON.parse(localStorage.getItem('ranking'))||[];
+  r.push(puntos);
+  r.sort((a,b)=>b-a);
+  if(r.length>10) r=r.slice(0,10);
+  localStorage.setItem('ranking',JSON.stringify(r));
+}
+
+function mostrarRanking(){
+  document.getElementById('ranking-section').style.display='block';
+  const r = JSON.parse(localStorage.getItem('ranking'))||[];
+  const ul = document.getElementById('ranking');
+  ul.innerHTML = r.map((p,i)=>`<li>${i+1}. ${p} puntos</li>`).join('');
+}
+</script>
+</body>
+</html>
